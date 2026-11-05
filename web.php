@@ -1,0 +1,31 @@
+<?php
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InventoryTransactionController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\PurchaseOrderController;
+use Illuminate\Support\Facades\Route;
+Route::get('/',fn()=>redirect()->route('dashboard'));
+Route::middleware('guest')->group(function(){Route::get('/login',[AuthController::class,'showLogin'])->name('login');Route::post('/login',[AuthController::class,'login'])->name('login.submit');});
+Route::middleware('auth')->group(function(){
+ Route::post('/logout',[AuthController::class,'logout'])->name('logout');
+ Route::get('/dashboard',[DashboardController::class,'index'])->name('dashboard');
+ Route::resource('products',ProductController::class);
+ Route::get('/transactions',[InventoryTransactionController::class,'index'])->name('transactions.index');
+ Route::get('/transactions/{type}/create',[InventoryTransactionController::class,'create'])->whereIn('type',['in','out'])->name('transactions.create');
+ Route::post('/transactions/{type}',[InventoryTransactionController::class,'store'])->whereIn('type',['in','out'])->name('transactions.store');
+ Route::get('/transactions/{transaction}',[InventoryTransactionController::class,'show'])->name('transactions.show');
+ Route::get('/api/dashboard/stats',[DashboardController::class,'stats'])->name('api.dashboard.stats');
+ Route::get('/api/products/low-stock',[DashboardController::class,'lowStockProducts'])->name('api.products.low-stock');
+ Route::get('/api/transactions/recent',[DashboardController::class,'recentTransactions'])->name('api.transactions.recent');
+ Route::post('/notifications/{id}/read',function(string $id){$n=auth()->user()->notifications()->whereKey($id)->firstOrFail();$n->markAsRead();return back()->with('success','Notification marked as read.');})->name('notifications.read');
+ Route::get('/reports',[ReportController::class,'index'])->name('reports.index');
+ Route::resource('suppliers',SupplierController::class);
+ Route::resource('purchase-orders',PurchaseOrderController::class)->only(['index','create','store','show']);
+ Route::post('/purchase-orders/{purchaseOrder}/approve',[PurchaseOrderController::class,'approve'])->name('purchase-orders.approve');
+ Route::post('/purchase-orders/{purchaseOrder}/reject',[PurchaseOrderController::class,'reject'])->name('purchase-orders.reject');
+ Route::post('/purchase-orders/{purchaseOrder}/send',[PurchaseOrderController::class,'send'])->name('purchase-orders.send');
+ Route::post('/purchase-orders/{purchaseOrder}/receive',[PurchaseOrderController::class,'receive'])->name('purchase-orders.receive');
+});
